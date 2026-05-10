@@ -43,7 +43,7 @@ def scroll_and_collect (driver, max_scroll = 10):
     return business_cards
 
 
-def extract_business_data(card):
+def extract_business_data(card, driver):
     try:
         card_text = card.text.split('\n')
 
@@ -51,17 +51,40 @@ def extract_business_data(card):
         #     print(f"Line {i}: {line}")
         # print("---")
 
-
+             
+        
         name = card_text[0] if len(card_text) > 0 else "N/A"
         rating = card_text[1].split('(')[0] if len(card_text) > 1 else "N/A"
         address= card_text[2] if len(card_text) > 2 else "N/A"
         raw_address = re.sub(r'^.*·\s*', '', address).strip()
 
+        link = card.find_element(By.XPATH, ".//a[@href]").get_attribute("href")
+
+    
+        driver.get(link)
+        time.sleep(3)
+
+        # elements = driver.find_elements(By.XPATH, "//button[contains(@data-item-id, 'phone')]")
+        # print(f"Phone buttons found: {len(elements)}")
+        # for i, el in enumerate(elements):
+        #     print(f"Button {i}: {el.text} | aria-label: {el.get_attribute('aria-label')}")
+
+        try:
+            phone_element = driver.find_element(By.XPATH, "//button[contains(@data-item-id, 'phone')]")
+    
+            phone = phone_element.get_attribute("aria-label").replace("Phone: ", "").strip()
+
+        except:
+            phone = "N/A"
+
+        driver.back()
+        time.sleep(2)
 
         return{
             "Name" : name,
             "Rating" : rating,
-            "Address" : raw_address
+            "Address" : raw_address,
+            "Phone_Number": phone
 
         }
 
@@ -99,9 +122,10 @@ def main():
 
         all_data = []
         for card in business_cards:
-            data = extract_business_data(card)
+            data = extract_business_data(card, driver)
             if data:
                 all_data.append(data)
+
 
         filename = f"{query.replace(' ', '_')}.csv"
         save_to_excel(all_data, filename=filename)
@@ -115,4 +139,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
